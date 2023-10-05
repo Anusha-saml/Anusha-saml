@@ -26,7 +26,7 @@ spec:
 ) {
     node (label) {
         stage ('Checkout SCM'){
-          git credentialsId: 'git', url: 'https://dptrealtime@bitbucket.org/dptrealtime/eos-micro-services-admin.git', branch: 'master'
+          git credentialsId: 'git', url: 'https://github.com/Anusha-saml/eos-micro-services-admin.git', branch: 'master'
           container('build') {
                 stage('Build a Maven project') {
                   //withEnv( ["PATH+MAVEN=${tool mvn_version}/bin"] ) {
@@ -48,74 +48,6 @@ spec:
         }
 
 
-        stage ('Artifactory configuration'){
-          container('build') {
-                stage('Artifactory configuration') {
-                    rtServer (
-                    id: "jfrog",
-                    url: "https://eosartifact.jfrog.io/artifactory",
-                    credentialsId: "jfrog"
-                )
 
-                rtMavenDeployer (
-                    id: "MAVEN_DEPLOYER",
-                    serverId: "jfrog",
-                    releaseRepo: "eos-libs-release-local",
-                    snapshotRepo: "eos-libs-release-local"
-                )
-
-                rtMavenResolver (
-                    id: "MAVEN_RESOLVER",
-                    serverId: "jfrog",
-                    releaseRepo: "eos-libs-release",
-                    snapshotRepo: "eos-libs-release"
-                )            
-                }
-            }
-        }
-        stage ('Deploy Artifacts'){
-          container('build') {
-                stage('Deploy Artifacts') {
-                    rtMavenRun (
-                    tool: "java", // Tool name from Jenkins configuration
-                    useWrapper: true,
-                    pom: 'pom.xml',
-                    goals: 'clean install',
-                    deployerId: "MAVEN_DEPLOYER",
-                    resolverId: "MAVEN_RESOLVER"
-                  )
-                }
-            }
-        }
-        stage ('Publish build info') {
-            container('build') {
-                stage('Publish build info') {
-                rtPublishBuildInfo (
-                    serverId: "jfrog"
-                  )
-               }
-           }
-       }
-       stage ('Docker Build'){
-          container('build') {
-                stage('Build Image') {
-                    docker.withRegistry( 'https://registry.hub.docker.com', 'docker' ) {
-                    def customImage = docker.build("dpthub/eos-micro-services-admin:latest")
-                    customImage.push()             
-                    }
-                }
-            }
-        }
-
-        stage ('Helm Chart') {
-          container('build') {
-            dir('charts') {
-              withCredentials([usernamePassword(credentialsId: 'jfrog', usernameVariable: 'username', passwordVariable: 'password')]) {
-              sh '/usr/local/bin/helm package micro-services-admin'
-              sh '/usr/local/bin/helm push-artifactory micro-services-admin-1.0.tgz https://eosartifact.jfrog.io/artifactory/eos-helm-local --username $username --password $password'
-              }
-            }
-        }
-        }
     }
 }
