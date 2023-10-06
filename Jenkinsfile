@@ -41,6 +41,7 @@ spec:
           container('build') {
                 stage('Sonar Scan') {
                   withSonarQubeEnv('sonar') {
+                  sh "chmod +x -R ${env.WORKSPACE}"  
                   sh './mvnw verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=eos-saml_eos'
                 }
                 }
